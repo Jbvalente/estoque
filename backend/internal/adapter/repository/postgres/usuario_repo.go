@@ -34,7 +34,7 @@ func toUsuarioEntity(dbUser db.Usuario) *entity.Usuario {
 		Email:     dbUser.Email,
 		SenhaHash: dbUser.SenhaHash,
 		Perfil:    dbUser.Perfil,
-		LojaID:    dbUser.LojaID.Bytes,
+		LojaID:    dbUser.LojaID.UUID,
 		Ativo:     dbUser.Ativo.Bool,
 		UltimoLogin: dbUser.UltimoLogin.Time,
 		CreatedAt: dbUser.CreatedAt.Time,

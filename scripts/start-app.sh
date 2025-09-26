@@ -51,7 +51,7 @@ echo
 echo "[SUCESSO] Aplicação iniciada com sucesso!"
 echo
 echo "Serviços disponíveis:"
-echo "  Frontend: http://localhost:3000"
+echo "  Frontend: http://localhost:3001"
 echo "  Backend:  http://localhost:8080"
 echo
 echo "Credenciais padrão:"
@@ -76,12 +76,12 @@ sleep 5
 # Tentar abrir o frontend no navegador (se disponível)
 if command -v xdg-open &> /dev/null; then
     echo "[INFO] Abrindo frontend no navegador..."
-    xdg-open http://localhost:3000
+    xdg-open http://localhost:3001
 elif command -v open &> /dev/null; then
     echo "[INFO] Abrindo frontend no navegador..."
-    open http://localhost:3000
+    open http://localhost:3001
 else
-    echo "[INFO] Acesse http://localhost:3000 no seu navegador."
+    echo "[INFO] Acesse http://localhost:3001 no seu navegador."
 fi
 
 echo

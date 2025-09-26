@@ -43,7 +43,7 @@ docker compose -f deployments/docker-compose.yml logs -f
 ### 🌐 Acessos
 
 Após a inicialização:
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3001
 - **Backend API**: http://localhost:8080
 - **Banco PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379

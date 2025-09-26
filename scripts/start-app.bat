@@ -55,7 +55,7 @@ echo.
 echo [SUCESSO] Aplicação iniciada com sucesso!
 echo.
 echo Serviços disponíveis:
-echo   Frontend: http://localhost:3000
+echo   Frontend: http://localhost:3001
 echo   Backend:  http://localhost:8080
 echo.
 echo Credenciais padrão:
@@ -78,7 +78,7 @@ echo Pressione qualquer tecla para abrir o frontend no navegador...
 pause >nul
 
 REM Abrir o frontend no navegador padrão
-start http://localhost:3000
+start http://localhost:3001
 
 echo.
 echo Aplicação em execução. Pressione qualquer tecla para sair.
