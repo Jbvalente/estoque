@@ -1,0 +1,306 @@
+Plano Técnico Detalhado – Backend do Sistema de Estoque (Supermercado)
+
+Autor: João Valente
+Analista Sênior: Assistente IA
+Status: Em definição
+
+---
+
+1. Visão Geral da Arquitetura
+- Linguagem: Go 1.21+
+- Arquitetura: Clean/Hexagonal (domain, usecases, adapters, infra)
+- Framework HTTP: Gin (performance) ou Echo (simplicidade)
+- Banco de dados: PostgreSQL 15+
+- ORM/Query Builder: sqlc (type-safe SQL) + golang-migrate
+- Cache: Redis para sessões, contadores e sugestões
+- Jobs/Scheduler: cron para alertas de validade e limpeza
+- Autenticação: JWT (access/refresh) + bcrypt/argon2
+- Validação: go-playground/validator
+- Observabilidade: zap/logrus + OpenTelemetry + pprof
+- Testes: testify + gomock + testcontainers
+
+2. Estrutura de Diretórios (Clean Architecture)
+backend/
+- cmd/
+  - api/
+    - main.go                    # entrypoint da aplicação
+- internal/
+  - domain/                      # camada de domínio (entidades, VOs, erros)
+    - entity/
+      - produto.go, categoria.go, lote.go, movimentacao.go, usuario.go
+    - vo/                        # value objects
+      - ean.go, cpf_cnpj.go, money.go
+    - repository/                # interfaces dos repositórios
+      - produto_repo.go, lote_repo.go, movimentacao_repo.go
+    - service/                   # interfaces de serviços de domínio
+      - fefo_service.go, margem_service.go
+  - usecase/                     # casos de uso (aplicação)
+    - produto/
+      - create_produto.go, list_produtos.go, update_produto.go
+    - estoque/
+      - get_saldos.go, create_movimentacao.go, fefo_baixa.go
+    - validade/
+      - get_alertas_validade.go
+    - vendas/
+      - get_ranking.go, get_curva_abc.go, get_margens.go
+    - inventario/
+      - create_inventario.go, process_coleta.go, conciliar.go
+    - auth/
+      - login.go, refresh_token.go
+  - adapter/                     # adaptadores (infra → domain)
+    - http/                      # handlers HTTP
+      - middleware/
+        - auth.go, cors.go, logging.go, rate_limit.go
+      - handler/
+        - produto_handler.go, estoque_handler.go, auth_handler.go
+      - dto/                     # request/response DTOs
+        - produto_dto.go, estoque_dto.go
+      - router/
+        - router.go
+    - repository/                # implementações dos repositórios
+      - postgres/
+        - produto_repo.go, lote_repo.go, movimentacao_repo.go
+        - queries/               # sqlc generated
+    - service/                   # implementações de serviços
+      - fefo_service_impl.go, margem_service_impl.go
+    - cache/                     # Redis adapters
+      - redis_client.go, session_cache.go
+  - infra/                       # infraestrutura
+    - config/
+      - config.go                # viper para env vars
+    - db/
+      - postgres.go, migration_runner.go
+    - logger/
+      - zap.go
+    - auth/
+      - jwt.go, password.go
+    - scheduler/
+      - cron_jobs.go             # alertas diários
+- api/
+  - openapi.yaml                 # especificação OpenAPI 3.0
+- migrations/
+  - 0001_init_schema.up.sql
+  - 0001_init_schema.down.sql
+  - 0002_add_indexes.up.sql
+- test/
+  - integration/
+  - fixtures/
+  - testdata/
+- go.mod
+- go.sum
+
+3. Camadas da Arquitetura Clean
+
+3.1. Domain (Entidades e Regras de Negócio)
+- Produto: ID, EAN, nome, descrição, categoria, marca, NCM, unidade, peso, ativo, estoque_min/max
+- Categoria: ID, nome, descrição
+- Fornecedor: ID, nome, CNPJ, contato, lead_time_dias
+- Lote: ID, produto_id, numero_lote, data_fabricacao, data_validade
+- Local: ID, loja_id, nome, tipo (depósito/gôndola/câmara)
+- SaldoLote: lote_id, local_id, quantidade
+- Movimentacao: ID, tipo, produto_id, lote_id, local_origem/destino, quantidade, custo/preço, motivo, timestamp
+- Usuario: ID, nome, email, senha_hash, perfil, ativo
+
+3.2. Use Cases (Lógica de Aplicação)
+- CreateProduto: validar EAN, verificar duplicatas, calcular margem inicial
+- ListProdutos: paginação, filtros, ordenação
+- GetSaldos: consolidar por produto/local/lote, aplicar filtros
+- CreateMovimentacao: validar estoque, aplicar FEFO na baixa, atualizar saldos
+- GetAlertasValidade: produtos ≤30 dias, filtros por loja/categoria/ABC
+- GetRanking: top/bottom sellers por período, critério (quantidade/faturamento/margem)
+- ProcessInventario: bloquear movimentações, conciliar diferenças, gerar ajustes
+
+3.3. Adapters (Interface com Mundo Externo)
+- HTTP Handlers: receber requests, validar DTOs, chamar use cases, retornar responses
+- Repository Implementations: queries SQL via sqlc, transações, mapeamento entity↔DB
+- Cache Implementations: Redis para sessões JWT, contadores de acesso, cache de consultas
+
+3.4. Infrastructure (Detalhes Técnicos)
+- Database: conexão PostgreSQL com pgx, pool de conexões, migrations
+- Logger: zap estruturado com correlation-id, níveis configuráveis
+- Config: viper para env vars, validação de configuração na startup
+- Auth: geração/validação JWT, hash de senhas, middleware de autorização
+
+4. Endpoints da API (RESTful)
+
+4.1. Autenticação
+- POST /api/v1/auth/login {email, senha} -> {accessToken, refreshToken, usuario}
+- POST /api/v1/auth/refresh {refreshToken} -> {accessToken}
+- POST /api/v1/auth/logout
+- GET  /api/v1/me -> dados do usuário logado
+
+4.2. Produtos
+- GET    /api/v1/produtos?search&categoriaId&ativo&page&limit&sort
+- GET    /api/v1/produtos/{id}
+- POST   /api/v1/produtos {ean, nome, categoria_id, ...}
+- PUT    /api/v1/produtos/{id} {nome, descricao, ...}
+- DELETE /api/v1/produtos/{id}
+- GET    /api/v1/categorias
+- POST   /api/v1/categorias {nome, descricao}
+
+4.3. Estoque
+- GET  /api/v1/estoques/saldos?produtoId&lojaId&localId&porLote=true
+- GET  /api/v1/locais?lojaId
+- GET  /api/v1/lotes?produtoId&validadeAte&page&limit
+- POST /api/v1/lotes {produto_id, numero_lote, data_fabricacao, data_validade}
+
+4.4. Movimentações
+- GET  /api/v1/movimentacoes?tipo&produtoId&dataInicio&dataFim&page&limit
+- POST /api/v1/movimentacoes {tipo, produto_id, lote_id?, local_origem?, local_destino, quantidade, custo_unitario?, motivo}
+
+4.5. Validade (FEFO)
+- GET /api/v1/alertas/validade?dias=30&lojaId&categoriaId&curvaABC
+
+4.6. Vendas e Performance
+- GET /api/v1/vendas/ranking?periodo&lojaId&ordenarPor=quantidade|faturamento|margem&top=10
+- GET /api/v1/vendas/curva-abc?periodo&criterio=faturamento|margem
+- GET /api/v1/kpis?periodo&lojaId -> {giro, cobertura_dias, ruptura_pct, perdas}
+- GET /api/v1/margens?produtoId&periodo
+
+4.7. Inventário
+- POST /api/v1/inventarios {loja_id, setor, responsaveis[]}
+- GET  /api/v1/inventarios/{id}
+- POST /api/v1/inventarios/{id}/coletas {produto_id, lote_id?, quantidade_contada}
+- POST /api/v1/inventarios/{id}/conciliar -> gera ajustes automáticos
+
+4.8. Relatórios
+- GET /api/v1/relatorios/validade.csv?dias=30&lojaId
+- GET /api/v1/relatorios/margens.csv?periodo&categoriaId
+- GET /api/v1/relatorios/estoque.csv?lojaId&incluirLotes=true
+
+5. Regras de Negócio Implementadas
+
+5.1. FEFO (First-Expired-First-Out)
+- Na criação de movimentação de saída, buscar lotes por produto ordenados por data_validade ASC
+- Aplicar baixa priorizando lotes com menor validade e saldo > 0
+- Registrar múltiplas movimentações se necessário para completar a quantidade
+
+5.2. Alertas de Validade
+- Job diário (cron) para identificar lotes com validade ≤ N dias (configurável, default 30)
+- Agrupar por produto, calcular saldo total crítico, sugerir ações (promoção, transferência)
+
+5.3. Cálculo de Margem
+- Margem bruta = (preço_venda - custo) / preço_venda * 100
+- Usar custo médio ponderado ou última compra (configurável)
+- Atualizar custo médio a cada entrada com custo diferente
+
+5.4. Inventário e Conciliação
+- Bloquear movimentações no setor durante inventário ativo
+- Comparar saldo_sistema vs saldo_contado por produto/lote
+- Gerar ajustes automáticos para diferenças, com trilha de auditoria
+
+6. Segurança e Autenticação
+
+6.1. JWT Strategy
+- Access token: 15min, payload mínimo (user_id, perfil)
+- Refresh token: 7 dias, armazenado em Redis com TTL
+- Middleware de autenticação: validar token, extrair claims, injetar user context
+
+6.2. RBAC (Role-Based Access Control)
+- Perfis: admin, gerente, comprador, operador_estoque
+- Permissões granulares por endpoint/ação
+- Middleware de autorização: verificar permissões do usuário para a rota
+
+6.3. Validação e Sanitização
+- DTOs com tags de validação (required, min, max, format)
+- Sanitização de strings (trim, escape)
+- Validação de EAN/CNPJ com algoritmos de dígito verificador
+
+7. Performance e Escalabilidade
+
+7.1. Database Optimization
+- Índices compostos: (produto_id, data_validade), (loja_id, produto_id), (data_criacao DESC)
+- Particionamento por data em movimentacoes (mensal/trimestral)
+- Connection pooling: max 20 conexões, idle timeout 5min
+
+7.2. Caching Strategy
+- Redis para:
+  - Sessões JWT (TTL = refresh token TTL)
+  - Contadores de produtos (giro, vendas do dia)
+  - Cache de consultas pesadas (ranking, ABC) com TTL 1h
+- Cache invalidation: após movimentações que impactem cálculos
+
+7.3. Concorrência
+- Goroutines para operações independentes (ex: envio de alertas)
+- Mutex/channels para sincronização quando necessário
+- Context para timeout e cancelamento de operações
+
+8. Observabilidade e Monitoramento
+
+8.1. Logging Estruturado
+- zap com campos padrão: timestamp, level, correlation_id, user_id, endpoint
+- Log de entrada/saída de requests (latência, status, payload size)
+- Log de erros com stack trace em desenvolvimento
+
+8.2. Métricas
+- Prometheus metrics: request_duration, request_count, db_query_duration
+- Custom metrics: produtos_baixo_estoque, alertas_validade_count
+- Health check endpoint: /health (DB connection, Redis connection)
+
+8.3. Tracing (Opcional)
+- OpenTelemetry para distributed tracing
+- Spans para use cases, database queries, cache operations
+
+9. Testes
+
+9.1. Testes Unitários
+- Domain entities: validação de regras de negócio
+- Use cases: mocks de repositórios, cenários de sucesso/erro
+- Handlers: mocks de use cases, validação de DTOs
+
+9.2. Testes de Integração
+- Repository implementations com testcontainers (PostgreSQL)
+- End-to-end de endpoints críticos
+- Cenários de concorrência (inventário simultâneo)
+
+9.3. Testes de Performance
+- Benchmark de queries críticas (saldos, ranking)
+- Load testing de endpoints com alta demanda
+
+10. Deployment e DevOps
+
+10.1. Docker
+- Multi-stage build: build em golang:alpine, runtime em alpine
+- Health check no container
+- Non-root user para segurança
+
+10.2. Environment Variables
+- DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+- REDIS_URL, JWT_SECRET, JWT_ACCESS_TTL, JWT_REFRESH_TTL
+- LOG_LEVEL, CORS_ORIGINS, RATE_LIMIT_RPS
+
+10.3. Migrations
+- golang-migrate para versionamento de schema
+- Migrations automáticas na startup (opcional, configurável)
+- Rollback strategy para migrations críticas
+
+11. Roadmap de Desenvolvimento
+
+11.1. Fase 1 (MVP - 6 semanas)
+- Setup: projeto, DB, migrations básicas
+- Auth: login, JWT, middleware básico
+- Produtos: CRUD completo, categorias
+- Estoque: saldos por local/lote, movimentações básicas
+- Validade: alertas ≤30 dias
+
+11.2. Fase 2 (4 semanas)
+- FEFO: implementação completa na baixa
+- Inventário: criação, coleta, conciliação
+- Vendas: ranking simples, margens por produto
+- Relatórios: exportação CSV
+
+11.3. Fase 3 (4 semanas)
+- KPIs: giro, cobertura, ruptura
+- Curva ABC: implementação e cache
+- Jobs: scheduler de alertas e limpeza
+- Observabilidade: métricas e tracing
+
+12. Critérios de Aceite (MVP)
+- API funcional com autenticação JWT
+- CRUD de produtos com validação
+- Movimentações aplicando FEFO corretamente
+- Alertas de validade ≤30 dias com filtros
+- Saldos por local/lote em tempo real
+- Inventário com conciliação automática
+- Testes com cobertura ≥80%
+- Documentação OpenAPI completa

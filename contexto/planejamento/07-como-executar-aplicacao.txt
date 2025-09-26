@@ -1,0 +1,87 @@
+## 07-como-executar-aplicacao.txt
+
+### Como Executar a Aplicação (Versão 1)
+
+Este documento detalha os passos para iniciar e interagir com a aplicação de controle de estoque, que inclui um backend em Go e um frontend em Next.js, orquestrados via Docker Compose.
+
+#### Pré-requisitos
+
+Certifique-se de ter os seguintes softwares instalados em sua máquina:
+
+-   **Docker Desktop**: Inclui Docker Engine e Docker Compose. Baixe e instale a versão mais recente para o seu sistema operacional em [docker.com](https://www.docker.com/products/docker-desktop).
+-   **Git**: Para clonar o repositório do projeto. Baixe em [git-scm.com](https://git-scm.com/downloads).
+
+#### Passos para Execução
+
+1.  **Navegar até o Diretório Raiz do Projeto**
+
+    Abra seu terminal ou prompt de comando e navegue até o diretório `D:\jbavalente\Projetos\estoque`:
+
+    ```bash
+    cd D:\jbavalente\Projetos\estoque
+    ```
+
+2.  **Iniciar os Serviços com Docker Compose**
+
+    A aplicação utiliza Docker Compose para gerenciar o backend (Go), o frontend (Next.js), o banco de dados (PostgreSQL) e o cache (Redis). Para iniciar todos os serviços, execute o seguinte comando no diretório raiz do projeto:
+
+    ```bash
+    docker-compose -f deployments/docker-compose.yml up --build -d
+    ```
+
+    -   `docker-compose -f deployments/docker-compose.yml`: Especifica o arquivo Docker Compose a ser usado.
+    -   `up`: Inicia os contêineres.
+    -   `--build`: Reconstrói as imagens Docker para o backend e frontend. Isso é importante para garantir que as últimas alterações de código sejam incluídas.
+    -   `-d`: Inicia os contêineres em modo "detached" (em segundo plano).
+
+    Este processo pode levar alguns minutos na primeira execução, pois as imagens Docker serão baixadas e construídas.
+
+3.  **Verificar o Status dos Serviços**
+
+    Você pode verificar se todos os serviços estão em execução com:
+
+    ```bash
+    docker-compose -f deployments/docker-compose.yml ps
+    ```
+
+    Todos os serviços (`backend`, `frontend`, `postgres`, `redis`) devem estar com o status `Up`.
+
+4.  **Acessar a Aplicação Frontend**
+
+    Após todos os serviços estarem em execução, abra seu navegador web e acesse:
+
+    ```
+    http://localhost:3000
+    ```
+
+    Você será redirecionado para a tela de login.
+
+#### Credenciais de Login Padrão
+
+Para acessar o sistema, utilize as seguintes credenciais:
+
+-   **Email**: `admin@supermercado.com`
+-   **Senha**: `password`
+
+#### Funcionalidades Implementadas (Versão 1 - Parcial)
+
+Atualmente, as seguintes funcionalidades estão operacionais:
+
+-   **Autenticação**: Login de usuário com email e senha.
+-   **Proteção de Rotas**: Páginas do dashboard protegidas por autenticação.
+-   **Listagem de Produtos**: Visualização de produtos cadastrados, incluindo preço, margem e categoria.
+-   **Cadastro de Produtos**: Formulário para adicionar novos produtos ao sistema, com validação e seleção de categoria.
+
+#### Parando a Aplicação
+
+Para parar e remover todos os contêineres, redes e volumes criados pelo Docker Compose, execute o seguinte comando no diretório raiz do projeto:
+
+```bash
+docker-compose -f deployments/docker-compose.yml down
+```
+
+Para parar os serviços, mas manter os contêineres e volumes (para um reinício mais rápido), use:
+
+```bash
+docker-compose -f deployments/docker-compose.yml stop
+```

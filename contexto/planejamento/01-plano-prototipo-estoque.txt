@@ -1,0 +1,157 @@
+Plano do Protótipo – Sistema de Controle de Estoque para Supermercado
+
+1) Objetivo do sistema
+- Centralizar o controle de estoque (loja e almoxarifado), validade (FEFO), entradas/saídas, vendas e margens por produto.
+- Reduzir perdas por vencimento, ruptura e erro operacional.
+- Fornecer visão gerencial (KPIs) para decisões de compra, precificação e promoções.
+
+2) Escopo funcional (MVP + expansão)
+2.1) Produtos e Catálogo
+- Cadastro de produto (EAN/GTIN, descrição, marca, categoria, subcategoria, NCM, unidade de medida, embalagem, peso/volume, foto, múltiplos códigos de barra por variação).
+- Vínculo com fornecedores, lead time e custo padrão.
+- Regras de conversão de unidade (ex.: caixa → unidade, kg → g, L → ml).
+
+2.2) Lotes, Validade e FEFO
+- Registro de lote, data de fabricação e data de validade por entrada.
+- Política FEFO (First-Expired-First-Out) na baixa/expedição.
+- Alertas de validade: listar itens com ≤30 dias para vencer; filtros por loja, departamento, fornecedor e curva ABC.
+- Ações sugeridas: remarcação, promoção relâmpago, transferência entre lojas, devolução ao fornecedor.
+
+2.3) Entradas e Saídas (Movimentações)
+- Entradas: compra (NF-e/NFe de fornecedor), devolução de cliente, transferência recebida, ajuste positivo, produção interna (padaria, açougue, hortifruti), inventário.
+- Saídas: venda (PDV/NFC-e), transferência enviada, quebra/perda (avaria, furto, vencido), ajuste negativo, consumo interno, doação.
+- Cada movimentação impacta estoque por local (almoxarifado, loja, depósito, câmara fria) e por lote.
+
+2.4) Estoque e Almoxarifado
+- Múltiplos endereços: rua/prateleira/box/câmara; mapa de localização por produto.
+- Níveis mínimos/máximos e estoque de segurança por produto/loja.
+- Saldos em tempo real por local e por lote; auditoria de movimentações.
+
+2.5) Preços, Custos e Margem de Lucro
+- Registro de custo (última compra, custo médio ponderado, custo padrão) e adicional (frete, ST, impostos, taxas).
+- Preço de venda por loja, tabela e promoções; regras por categoria e markup alvo.
+- Margem por produto: margem bruta = (preço venda - custo) / preço venda; margem unitária e total no período.
+- Relatórios de margem por produto, categoria, fornecedor e período.
+
+2.6) Vendas e Performance
+- Produtos mais vendidos e menos vendidos (quantidade, faturamento, margem) por período.
+- Giro de estoque, cobertura de estoque (dias), ruptura e taxa de atendimento.
+- Curva ABC por faturamento e por margem.
+
+2.7) Inventário e Auditoria
+- Inventário cego por setor, contagem por código de barras, coleta por mobile.
+- Conciliação de diferenças e geração automática de ajustes.
+- Trilha de auditoria completa (quem, quando, onde, antes/depois).
+
+2.8) Notificações e Alertas
+- Validade a ≤30 dias, estoque baixo vs nível de segurança, ruptura, compras sugeridas.
+- Canais: e-mail, painel, webhook (para integrações futuras).
+
+2.9) Usuários, Perfis e Segurança
+- Perfis: operador de estoque, comprador, gerente, administrador.
+- Permissões granulares por módulo/ação; registro de sessão e MFA opcional.
+
+2.10) Relatórios e Dashboards
+- Dashboard executivo: validade crítica, perdas, giro, margem, rupturas, top/bottom sellers.
+- Relatórios exportáveis (CSV/XLSX/PDF) com filtros salvos.
+
+2.11) Integrações (fase posterior)
+- Fiscais/PDV: NFC-e/SAT, TEF, NF-e (entradas), balanças e etiquetadoras.
+- ERP/contábil: contas a pagar/receber, centros de custo.
+- E-commerce/marketplaces para unificar estoque.
+
+3) Requisitos não funcionais
+- Disponibilidade: meta 99,5% no MVP; tolerância a picos (balcão de ofertas).
+- Desempenho: respostas <300ms p95 para consultas comuns; pesquisas com paginação.
+- Segurança: HTTPS, OWASP Top 10, criptografia de segredos, RBAC.
+- Observabilidade: logs estruturados, métricas (Prometheus), tracing.
+- Portabilidade: containers (Docker), scripts de infra como código.
+
+4) Arquitetura e tecnologias
+4.1) Backend (Go) – pasta: backend/
+- Padrão: Clean/Hexagonal (camadas domain, usecases/services, adapters, infra).
+- Framework HTTP: Gin ou Echo.
+- Persistência: PostgreSQL; migrações com golang-migrate; SQL: sqlc (preferencial) ou GORM.
+- Cache: Redis para contagens, sessões e sugestões de compra.
+- Jobs/cron: scheduler (cron) para varredura de validade diária e alertas.
+- Autenticação: JWT (access/refresh), senhas com bcrypt/argon2.
+- Validação: go-playground/validator.
+- Testes: testify; mocks com gomock.
+- Observabilidade: zap/logrus, OpenTelemetry, pprof em ambiente interno.
+- Integrações futuras: filas (RabbitMQ/Kafka) para eventos de estoque.
+
+4.2) Frontend (Next.js + shadcn) – pasta: frontend/
+- Stack: Next.js 14+ (App Router), TypeScript, shadcn/ui, Tailwind, TanStack Query, React Hook Form + Zod, Recharts/visx.
+- Roteamento: App Router (file-based), segmentos e layouts.
+- Renderização: SSR/SSG/ISR conforme necessidade; Server/Client Components.
+- Autenticação: fluxo JWT com refresh; `middleware.ts` para rotas protegidas.
+- Internacionalização futura (pt-BR por padrão).
+
+4.3) Implantação
+- Docker Compose para dev; produção com Docker + Postgres gerenciado.
+- Variáveis de ambiente via .env; secrets no provedor.
+
+5) Modelo de dados (visão inicial)
+- produtos(id, ean, descricao, categoria_id, unidade, ncm, ativo)
+- categorias(id, nome)
+- fornecedores(id, nome, cnpj, lead_time_dias)
+- precos(id, produto_id, loja_id, preco_venda, tabela, vigencia_inicio, vigencia_fim)
+- custos(id, produto_id, custo_medio, custo_ultima_compra, impostos, frete)
+- estoques(id, produto_id, loja_id, local_id, saldo_total)
+- locais(id, loja_id, nome, tipo)
+- lotes(id, produto_id, numero_lote, fab_data, val_data)
+- saldos_lote(id, lote_id, local_id, saldo)
+- movimentacoes(id, tipo, produto_id, lote_id, local_id_origem, local_id_destino, quantidade, custo_unitario, preco_unitario, motivo, criado_em)
+- vendas(id, produto_id, quantidade, preco_unitario, desconto, criado_em, loja_id)
+- usuarios(id, nome, email, hash_senha, perfil, ativo)
+
+6) Regras de negócio chave
+- Baixa por FEFO: ao dar saída, priorizar lote com menor validade e saldo disponível.
+- Validade ≤30 dias: gerar alerta diário, consolidado por produto/lote/loja, com sugestão de ação.
+- Margem: calcular por item e consolidada por período; considerar custo médio no período ou última compra (configurável).
+- Inventário: bloquear movimentações em área/setor durante contagem; ajustes automáticos após conciliação.
+- Níveis mínimos: gerar sugestão de compra considerando lead time, giro e cobertura desejada (dias).
+
+7) Telas (wireframes de alto nível)
+- Login e troca de senha.
+- Dashboard: cartões de KPIs, gráfico de giro, lista de alertas (validade/ruptura).
+- Produtos: lista, cadastro/edição, preços, custos, fornecedores, unidades.
+- Estoque: saldos por local e por lote, mapa de localização, transferências.
+- Movimentações: entradas, saídas, ajustes, devoluções, produção interna.
+- Validade: visão por produto/lote, filtros e ações sugeridas.
+- Vendas: ranking top/bottom, curva ABC, margem por produto.
+- Inventário: criação, coleta, conciliação.
+- Usuários e permissões.
+- Relatórios e exportações.
+
+8) KPIs e relatórios sugeridos
+- Giro de estoque, dias de cobertura, taxa de ruptura, OTIF fornecedor, perdas (quebra/vencimento), margem por categoria, ABC por faturamento e por margem, ageing de estoque (30/60/90/120+), acurácia de inventário.
+
+9) Roadmap e fases
+- Fase 0: Planejamento detalhado e desenho de dados.
+- Fase 1 (MVP): produtos, fornecedores, entradas/saídas, FEFO básico, saldos por lote/local, alertas de validade (≤30 dias), margem por produto simples, dashboard mínimo.
+- Fase 2: inventário, relatórios completos, curva ABC, KPIs, exportações, sugestões de compra.
+- Fase 3: multi-loja, promoções avançadas, auditoria avançada, integrações fiscais/PDV, dispositivos (balança/etiquetadora).
+
+10) Critérios de aceite (MVP)
+- Registrar lote e validade em toda entrada; baixa em FEFO em todas saídas.
+- Listar todos os itens com validade ≤30 dias, com filtros e exportação CSV.
+- Calcular margem por item e consolidada por produto/intervalo.
+- Exibir ranking top/bottom de vendas por período.
+- Controlar saldos por local e por lote, com trilha de auditoria.
+
+11) Riscos e mitigação
+- Qualidade de dados de fornecedores/PDV: validar e normalizar EAN/NCM; importação assistida.
+- Adoção operacional: treinar equipe, UX simples, mobile-friendly para coleta.
+- Performance em consultas densas: índices, partição por data/loja, cache em Redis.
+
+12) Estrutura de pastas do projeto (alto nível)
+- backend/ (Go, API, domain, infra, migrations, docs)
+- frontend/ (Next.js, shadcn/ui, app, components, lib, store)
+- contexto/ (documentos, wireframes)
+- docker/ (compose, envs exemplo)
+
+13) Próximos passos
+- Detalhar diagrama ER e endpoints do MVP.
+- Especificar eventos e cron jobs (validade e sugestões de compra).
+- Desenhar wireframes das telas críticas (dashboard, validade, movimentações).

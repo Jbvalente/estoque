@@ -1,0 +1,69 @@
+Avaliação do Desenvolvimento e Documentação – Sistema de Estoque (Supermercado)
+
+Escopo analisado
+- Documentos: 00-estrutura de pastas, 01-plano protótipo, 02-plano técnico frontend, 03-plano técnico backend, 04-wireframes/fluxos, 05-plano de banco (DDL).
+- Protótipo Next.js: App Router com páginas e componentes (produtos, estoque, validade, vendas, inventário, dashboard), formulários e tabelas estáticas.
+
+O que está bem encaminhado
+- Visão de negócio completa (FEFO, validade ≤30 dias, margens, inventário, KPIs, curva ABC).
+- Frontend: arquitetura Next.js App Router, padrões de caching, segurança e UX; telas/fluxos mapeados.
+- Backend: arquitetura Clean/Hexagonal, endpoints e regras de negócio chave, segurança, observabilidade.
+- Banco de dados: DDL abrangente com partições, índices, views, triggers (custo médio) e seeds.
+- Estrutura de pastas do projeto e plano de deploy/ops (docker, CI/CD proposto).
+
+Gaps e pendências (o que falta levantar/definir)
+1) Requisitos funcionais detalhados (nível de regra por tela)
+- Políticas de promoções para itens com validade crítica (processo e impacto no preço).
+- Tratamento de unidades de medida e conversões nos fluxos (cadastro e movimentações).
+- Fluxo de transferência entre lojas/locais (autorização, bloqueio, auditoria).
+- Fluxos de produção interna (padaria/açougue/hortifruti) e baixa de insumos.
+- Política de devolução a fornecedor (documentos, custo e saldo por lote).
+
+2) Integrações externas (futuras/priorização)
+- PDV/NFC-e/SAT/TEF: formato de integração, frequência, origem dos dados de vendas.
+- NF-e de entrada: captura automática de XML/DANFE para gerar entradas e lotes.
+- Balanças/etiquetadoras: protocolos e layouts de etiquetas (EAN-13, preço/kg).
+- ERP/contábil: conciliação de custos e centros de custo.
+
+3) Segurança e conformidade
+- Política de senhas e MFA; expiração e rotação de tokens.
+- Matriz de permissões (RBAC) por ação/tela (operador, comprador, gerente, admin).
+- LGPD: dados pessoais tratados (usuários/fornecedores) e base legal; retenção de logs.
+
+4) Observabilidade e SRE
+- Padrões de logs (campos obrigatórios), amostragem e retenção.
+- Painéis de métricas (Prometheus/Grafana): KPIs técnicos e de negócio.
+- Estratégia de alarmes para jobs de validade, rupturas e falhas de integração.
+
+5) Qualidade e testes
+- Critérios de aceite detalhados por endpoint/tela.
+- Estratégia de testes E2E (cenários críticos FEFO/inventário), uso de MSW/Playwright.
+- Dados de massa para ambientes de homologação.
+
+6) Performance e escalabilidade
+- Limites e SLAs por endpoint (p95/p99) e volumetria esperada (SKUs, vendas/dia, lotes).
+- Estratégia de cache por recurso (tags e invalidações) + limites de memória.
+- Plano de partições futuras (rolling) em movimentações/vendas; retenção de histórico.
+
+7) Operação e processos
+- Procedimento operacional para inventário cego por setor (bloqueios, reconciliação e reabertura).
+- Rotina diária/semanal: reposição, verificação de validade, auditorias cíclicas.
+- Plano de contingência (queda de serviços, modo offline emergencial no PDV).
+
+Ajustes recomendados no curto prazo
+- Backend: definir contratos OpenAPI v1 com schemas (produtos, movimentações, inventário) e erros (RFC 7807).
+- Frontend: definir política de revalidateTag por página e chaves de cache em `lib/queries`.
+- Banco: acrescentar tabela de promoções/preços temporários por lote/loja; tabela de campanhas.
+- Segurança: especificar refresh httpOnly + lista de revogação no Redis; política de CORS.
+- Testes: preparar suíte mínima E2E para fluxos FEFO (saída multi-lote) e inventário (coleta/conciliar/ajuste).
+
+Backlog de descoberta (workshops/entrevistas)
+- Operação de loja: tempos de reposição, limites de estoque de segurança, turnos e responsabilidades.
+- Compras/fornecedores: lead time real, política de devoluções, acordos de bonificação.
+- Fiscal: estratégias para NF-e/NFC-e/SAT e impacto no estoque.
+
+Próximos passos sugeridos
+- Versão 0 do OpenAPI e geração de SDK (frontend) com base nos endpoints do MVP.
+- Refino dos wireframes de Validade e Movimentações com ações em massa e confirmação.
+- Prototipar importação de NF-e de entrada (XML) para criação de lotes.
+- Planejar dados de massa e scripts de seed realistas por categoria.

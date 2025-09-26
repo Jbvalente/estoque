@@ -1,0 +1,131 @@
+Plano de Wireframes e Fluxos de Telas – Sistema de Estoque (Supermercado)
+
+Objetivo
+- Definir wireframes de baixa fidelidade e fluxos principais para orientar UX/UI e desenvolvimento.
+- Incorporar melhores práticas de App Router (Next.js), tabelas de alto desempenho, formulários com validação e acessibilidade.
+
+Padrões Gerais de UX
+- Navegação: sidebar fixa com rotas principais; breadcrumbs por seção; busca global.
+- Consistência: tipografia e espaçamentos do design system (shadcn + Tailwind); ícones consistentes (Lucide).
+- Feedback: toasts para sucesso/erro; skeletons em loading; estados vazios com CTA.
+- Acessibilidade: foco visível, labels, ARIA; navegação por teclado em tabelas; contraste adequado.
+- Responsividade: layout fluido; roteiros críticos otimizados para tablet (inventário/coleta).
+
+Mapa de Navegação (App Router)
+- (auth)/login
+- /(dashboard)
+- /produtos, /produtos/novo, /produtos/[id]
+- /estoque/saldos, /estoque/movimentacoes
+- /validade/alertas
+- /vendas/ranking, /vendas/abc, /vendas/margens
+- /inventario/novo, /inventario/[id]
+- /configuracoes/usuarios, /configuracoes/locais
+
+1) Login (auth/login)
+- Componentes: Logo, campos (email, senha), botão Entrar, link “Esqueci minha senha”.
+- Estados: carregando (spinner no botão), erro (mensagem inline), bloqueio após N tentativas.
+- Ações: submit; lembrar-me; toggle mostrar/ocultar senha.
+- Fluxo: sucesso → dashboard; erro → manter na tela.
+
+2) Dashboard (/)
+- KPIs (cards): giro, cobertura (dias), ruptura, perdas (quebra/vencimento), margem.
+- Alertas (lista): validade ≤30 dias, estoque abaixo do mínimo; filtros rápidos.
+- Gráficos: linha (giro), barras (top sellers), pizza (quebras por motivo).
+- Atalhos: botões para “Nova entrada”, “Iniciar inventário”, “Produtos”.
+- Fluxos: clicar em alerta → /validade/alertas com filtro aplicado; clicar em top seller → /vendas/ranking.
+
+3) Produtos (/produtos)
+Lista
+- Barra superior: busca por EAN/nome; filtros (categoria, status, fornecedor); ações em massa (exportar CSV).
+- Tabela virtualizada: colunas EAN, descrição, categoria, preço, margem, status.
+- Ações por linha: ver/editar, desativar/ativar.
+Formulário (novo/[id])
+- Abas: Dados básicos, Preços, Custos, Fornecedores, Unidades/Conversões.
+- Validações: EAN válido; campos obrigatórios; máscaras (número, moeda, NCM).
+- Ações: salvar, salvar e continuar, cancelar; histórico de alterações (read-only).
+Fluxos
+- Criar produto → retorna para lista com toast; editar produto → confirma ao sair sem salvar.
+
+4) Estoque (/estoque)
+Saldos
+- Filtros: loja, local, produto, por lote.
+- Tabela: produto, local, lote, saldo, validade; indicadores de crítica (vermelho ≤30 dias).
+- Ações: transferir entre locais, ajustar saldo (justificativa).
+Movimentações
+- Filtros: tipo (entrada/saída/ajuste/transferência), período, produto.
+- Tabela: data, tipo, produto, lote, quant, custo/preço, origem→destino, usuário.
+- Ações: registrar nova movimentação; exportar CSV.
+Fluxos
+- “Nova entrada” abre modal/form com seleção de fornecedor, produto, lote, validade, custo; ao salvar, atualizar saldos.
+
+5) Validade (/validade/alertas)
+- Filtros: dias (default 30), loja, categoria, fornecedor, ABC.
+- Lista: produto, lote, validade, saldo, loja/local; sugestões (promover, transferir, devolver).
+- Ações em massa: gerar etiqueta promo, criar campanha, exportar CSV.
+Fluxos
+- Selecionar itens → ação “promover” → confirmar → registrar campanha (placeholder) e marcar itens.
+
+6) Vendas (/vendas)
+Ranking
+- Filtros: período, loja, ordenar por (quantidade, faturamento, margem), top N.
+- Lista: produto, quantidade, faturamento, margem; link para produto.
+Curva ABC
+- Filtros: período, critério (faturamento|margem).
+- Gráfico + tabela: grupo A/B/C, participação e itens.
+Margens
+- Filtros: período, categoria, fornecedor.
+- Tabela: produto, preço, custo (médio/última), margem %, margem $.
+
+7) Inventário (/inventario)
+Novo
+- Configuração: loja/setor, data, responsáveis.
+- Instruções de coleta (tablet-friendly): campo de leitura de código de barras; input de quantidade; lote opcional.
+- Ações: iniciar; baixar planilha modelo; importar CSV.
+Detalhe ([id])
+- Abas: Coletas, Conciliação, Ajustes.
+- Coletas: lista de leituras (produto, lote, quant, usuário, timestamp) com correção rápida.
+- Conciliação: comparação saldo sistema vs contado; aceitar difs; gerar ajustes.
+- Ajustes: histórico dos ajustes aplicados.
+Fluxos
+- Finalizar inventário → gerar ajustes → bloquear movimentações durante conciliação.
+
+8) Configurações (/configuracoes)
+Usuários
+- Lista: nome, e-mail, perfil, status.
+- Formulário: criar/editar; reset de senha; permissão por módulo/ação.
+Locais
+- Lista: nome, loja, tipo (câmara/rua/prateleira); capacidade opcional.
+- Formulário: CRUD simples.
+
+Componentes Transversais
+- DataTable: server-side pagination/sort/filter; seleção múltipla; colunas reordenáveis; densidade de linhas.
+- DateRangePicker: período comum (hoje/7/30/90 dias/custom). 
+- ConfirmDialog: confirmação para ações destrutivas; foco em acessibilidade.
+- Upload CSV: validação cliente (Zod), preview de erros.
+- Toast/Alert: feedback consistente; tempo padrão e variantes semânticas.
+
+Fluxos Críticos (start-to-end)
+- Registrar entrada de compra: Dashboard → “Nova entrada” → form → salvar → Estoque/saldos atualizado → log em Movimentações.
+- Tratar validade crítica: Dashboard → Alertas → selecionar itens → ação sugerida → confirmar → registrar operação.
+- Lançar inventário: Dashboard → “Iniciar inventário” → coletar → conciliar → aplicar ajustes.
+- Ajustar preço/margem: Produtos → [id] → aba Preços → editar → salvar → refletir em margens.
+
+Estados e Padrões de Carregamento/Erro
+- loading.tsx: skeletons em listagens e formulários.
+- error.tsx: fallback com opção de retry; log em Sentry (opcional).
+- not-found.tsx: mensagem e link de retorno.
+
+Regras de Acessibilidade
+- Tabelas: navegação por teclado; célula ativa destacada; leitura por screen reader.
+- Formulários: labels associadas; mensagens de erro vinculadas a inputs (aria-describedby).
+- Atalhos: '/' para foco na busca; 'Shift+A' para ação em massa (onde fizer sentido).
+
+Métricas de Sucesso (UX)
+- Tempo para completar tarefas: registrar entrada, localizar validade crítica, concluir inventário.
+- Taxa de erro em formulários e reconciliação.
+- Engajamento com alertas (itens resolvidos/abertos).
+
+Anotações Técnicas para Prototipação
+- Figma: criar library com tokens (cores, spacing, tipografia) e componentes base (Button, Input, Select, Table, Dialog).
+- Componentização com shadcn: usar cva e tailwind-merge para variantes.
+- Prototipar navegação realista com App Router (segmentos simulados) e estados (loading/error).

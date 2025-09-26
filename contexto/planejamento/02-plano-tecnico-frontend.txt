@@ -1,0 +1,237 @@
+Plano Técnico Detalhado – Frontend do Sistema de Estoque (Supermercado)
+
+Autor: João Valente
+Analista Sênior: Assistente IA
+Status: Em definição
+
+---
+
+1. Visão Geral da Arquitetura
+- Framework: Next.js 14+ (App Router)
+- Linguagem: TypeScript
+- Estilo: Tailwind CSS
+- Componentes UI: shadcn/ui
+- Busca de Dados e Cache: TanStack Query (React Query)
+- Formulários e Validação: React Hook Form + Zod
+- Estado Global: leve com Zustand (auth e preferências)
+- Gráficos: Recharts (ou visx)
+- Roteamento: App Router (file-based routing)
+- Renderização: SSR/SSG/ISR conforme tela; Server/Client Components
+- Internacionalização: pt-BR (i18n pronta para expansão)
+- Imagens e fontes: next/image (lazy, otimização) e next/font (fontes self-hosted)
+- Code splitting: next/dynamic para componentes pesados (gráficos, tabelas) e segment-level
+- Cache e revalidação: fetch com { next: { revalidate, tags } }; revalidatePath/revalidateTag quando aplicável
+- Variáveis de ambiente: server-only (sem NEXT_PUBLIC) para segredos; uso de process.env via runtime do Next
+
+2. Contrato com o Backend (Go)
+- Padrão: REST JSON, Auth via Bearer JWT (access/refresh)
+- Convenções: paginação ?page=&limit=, ordenação ?sort=campo:asc|desc, filtro por query params
+- Erros: RFC 7807 (application/problem+json) opcional
+
+2.1. Autenticação e Usuários
+- POST /api/v1/auth/login {email, senha} -> {accessToken, refreshToken, usuario}
+- POST /api/v1/auth/refresh {refreshToken} -> {accessToken}
+- POST /api/v1/auth/logout
+- GET  /api/v1/me -> dados do usuário logado
+
+2.2. Produtos e Catálogo
+- GET  /api/v1/produtos?search&categoriaId&page&limit
+- GET  /api/v1/produtos/{id}
+- POST /api/v1/produtos
+- PUT  /api/v1/produtos/{id}
+- DELETE /api/v1/produtos/{id}
+- GET  /api/v1/categorias
+
+2.3. Lotes e Validade (FEFO)
+- GET  /api/v1/lotes?produtoId&lojaId&validadeAte
+- GET  /api/v1/lotes/{id}
+- POST /api/v1/lotes (cria lote em entrada)
+- GET  /api/v1/alertas/validade?dias=30&lojaId&categoriaId
+
+2.4. Estoque, Locais e Saldos
+- GET  /api/v1/estoques/saldos?produtoId&lojaId&localId&porLote=true|false
+- GET  /api/v1/locais?lojaId
+
+2.5. Movimentações (Entradas/Saídas/Ajustes)
+- GET  /api/v1/movimentacoes?tipo&produtoId&dataInicio&dataFim&page&limit
+- POST /api/v1/movimentacoes (entrada, saída, transferência, ajuste) -> aplica FEFO na baixa
+
+2.6. Preços, Custos e Margens
+- GET  /api/v1/precos?produtoId&lojaId
+- POST /api/v1/precos (tabela/promoção)
+- GET  /api/v1/custos?produtoId
+- GET  /api/v1/margens?produtoId&periodo
+
+2.7. Vendas e Performance
+- GET  /api/v1/vendas/ranking?periodo&lojaId&ordenarPor=quantidade|faturamento|margem&top=10
+- GET  /api/v1/vendas/curva-abc?periodo&criterio=faturamento|margem
+- GET  /api/v1/kpis?periodo&lojaId (giro, cobertura, ruptura, perdas)
+
+2.8. Inventário
+- POST /api/v1/inventarios (cria inventário por setor)
+- GET  /api/v1/inventarios/{id}
+- POST /api/v1/inventarios/{id}/coletas (itens contados - mobile)
+- POST /api/v1/inventarios/{id}/conciliar -> gera ajustes
+
+2.9. Relatórios e Exportações
+- GET  /api/v1/relatorios/validade.csv?dias=30
+- GET  /api/v1/relatorios/margens.csv?periodo
+- GET  /api/v1/relatorios/estoque.csv?lojaId
+
+3. Design do Frontend
+
+3.1. Estrutura de Diretórios e Rotas (App Router)
+frontend/
+- app/
+  - layout.tsx (Client; layout protegido com sidebar/header)
+  - page.tsx (Dashboard)
+  - (auth)/
+    - layout.tsx
+    - login/page.tsx
+  - (estoque)/
+    - validade/alertas/page.tsx
+    - estoque/saldos/page.tsx
+    - estoque/movimentacoes/page.tsx
+  - produtos/
+    - page.tsx (lista)
+    - novo/page.tsx
+    - [id]/page.tsx
+  - vendas/
+    - ranking/page.tsx
+    - abc/page.tsx
+    - margens/page.tsx
+  - inventario/
+    - novo/page.tsx
+    - [id]/page.tsx
+  - configuracoes/
+    - usuarios/page.tsx
+    - locais/page.tsx
+- features/                 (módulos por domínio: produtos, estoque, validade, vendas, inventário)
+  - produtos/
+    - components/, hooks/, services/, types/
+  - estoque/
+    - components/, hooks/, services/, types/
+- components/
+  - ui/ (shadcn)
+  - layout/Sidebar.tsx, Header.tsx
+  - data-table/, forms/, charts/
+- lib/
+  - api.ts (fetch/axios com interceptors JWT)
+  - queries/ (TanStack Query hooks)
+  - zod-schemas/
+  - utils/
+- store/
+  - auth.ts (Zustand)
+- public/
+- styles/
+- middleware.ts (proteção de rotas públicas/privadas)
+- tests/ (unit, integration com RTL) co-localizados quando fizer sentido
+- .storybook/ (opcional)
+
+3.2. Server vs Client Components
+- Padrão: páginas como Server Components consumindo dados via fetch em SSR/ISR quando benéfico (ex.: dashboards e relatórios agregados)
+- Componentes interativos (tabelas, formulários, gráficos): Client Components com TanStack Query
+- Streaming e partial rendering: usar suspense boundaries para UX fluida
+- loading.tsx e error.tsx por segmento; not-found.tsx quando aplicável
+
+3.3. Decomposição de Componentes (principais)
+- LoginForm, ProtectedSlot (wrapper de layout com RBAC)
+- DataTable (produtos, lotes, saldos, movimentações) com paginação/ordenção/filtros
+- ProductForm (React Hook Form + Zod)
+- InventoryCollector (coleta de inventário)
+- FEFOBadge (indicador de lote/validade)
+- AlertsList (validade ≤30 dias)
+- KPICards (giro, cobertura, ruptura, perdas, margem)
+- RankingList (top/bottom sellers)
+- ABCChart, MarginChart, StockAgingChart
+- Padrões shadcn: cva + tailwind-merge para variantes de componentes e theming
+
+3.4. Experiência do Usuário (UX)
+- Busca e filtros persistentes por rota (search params do App Router + estado)
+- Feedback imediato (toasts) e ações em massa (seleção múltipla)
+- Modo escuro/claro; responsivo para tablets (coleta/inventário)
+- Acessibilidade: Radix primitives, foco visível, labels, ARIA; atalhos de teclado em tabelas
+
+3.5. Padrões de Formulário
+- Zod para schema; zodResolver; máscaras (EAN, CNPJ, datas)
+- Field Arrays (RHF) para preços por loja e coletas de inventário
+- Submit com estados (idle/loading/success/error) e desabilitar repetição
+
+3.6. Tabelas e Lista de Dados
+- DataTable genérico com colDefs; paginação/sort/filter server-side
+- Virtualização com @tanstack/react-virtual para grandes volumes
+- Exportação CSV via endpoints dedicados
+
+3.7. Autenticação e Autorização (RBAC)
+- Middleware + rota pública `(auth)`; verificação de token/refresh no cliente
+- Componente `RequirePermission` para exibir/ocultar ações por regra
+- Tokens: refresh como cookie httpOnly SameSite=Lax; access em memória (reduz risco XSS)
+
+3.8. Estado, Cache e Sincronização
+- TanStack Query: chaves estáveis; staleTime/gcTime por recurso; retries com backoff; cancelamento via AbortSignal
+- Desativar refetchOnWindowFocus em listas pesadas; revalidar manualmente após mutações
+- Infinite queries para históricos longos (movimentações)
+
+3.9. Observabilidade e Erros
+- Interceptor axios/fetch: correlation-id; logging básico em dev
+- Error boundaries por segmento (error.tsx), loading skeletons (loading.tsx), not-found.tsx
+- Integração opcional com Sentry para erros de cliente
+
+3.10. Performance
+- next/image para imagens; next/font para fontes
+- next/dynamic para componentes pesados; prefetch de links críticos; evitar hidratação desnecessária
+- Evitar re-render: memoização, tabelas virtualizadas, seletores estáveis
+
+3.11. Testes
+- Unit (Vitest): utils, hooks, componentes isolados
+- Integração (RTL): formulários (ProductForm), DataTable com filtros
+- E2E (Playwright): fluxos críticos (login, lançar entrada/saída, inventário, alerta de validade)
+- MSW para mocks de API em testes
+- Storybook (opcional) para componentes críticos (forms, tabelas, gráficos)
+
+4. Mapas de Tela → Requisitos do Negócio
+- Dashboard: KPIs (giro, cobertura, ruptura, perdas, margem), Alertas de validade ≤30 dias, Ranking top/bottom
+- Produtos: CRUD + preços/custos/fornecedores; importação CSV; validação EAN/NCM
+- Estoque: saldos por local e por lote; transferência; mapa de localização
+- Movimentações: registrar entrada/saída/ajuste/transferência com aplicação FEFO
+- Validade: lista por lote com filtros e ações sugeridas (promoção, transferência)
+- Vendas: ranking, curva ABC, margens por produto e categoria
+- Inventário: criação, coleta mobile-friendly, conciliação e ajustes
+- Relatórios: exportações CSV (validade, margens, estoque)
+- Configurações: usuários/perfis (RBAC), locais de armazenagem
+
+5. Aderência aos Requisitos Não Funcionais
+- Performance: SSR/ISR para listas e dashboards quando vantajoso; paginação server-side; virtualização quando necessário; dynamic imports
+- Segurança: JWT seguro; refresh httpOnly SameSite=Lax; proteção XSS/CSRF; CSP com nonce e next-safe; sanitização de entrada; middleware de proteção
+- Acessibilidade e responsividade; dark mode
+
+6. Roadmap do Frontend
+- Fase 1 (MVP): auth, dashboard mínimo, produtos (CRUD), movimentações (entrada/saída/ajuste com FEFO), saldos por lote/local, alertas de validade ≤30 dias, ranking top/bottom simples
+- Fase 2: inventário completo, curva ABC, relatórios e exportações, margens detalhadas
+- Fase 3: multi-loja, mapa de armazenagem, promoções avançadas, configurações avançadas e integrações externas
+
+7. Critérios de Aceite do Frontend (MVP)
+- Login com JWT e rotas protegidas (middleware)
+- Listagens com paginação/ordenção/filtro estáveis
+- Entrada/saída gerando atualização imediata nos saldos e histórico
+- Tela de validade exibindo todos os itens ≤30 dias com exportação CSV
+- Ranking top/bottom por período com filtros
+- CSP habilitado e tokens seguros conforme política definida
+
+8. Estrutura de Pastas (alto nível)
+frontend/
+- app/* (rotas Next.js)
+- features/* (módulos de domínio)
+- components/ui/* (shadcn)
+- components/* (layout, tables, forms, charts)
+- lib/* (api, queries, zod, utils)
+- store/* (zustand)
+- public/*, styles/*
+- middleware.ts
+- tests/*, .storybook/* (opcional)
+
+9. Próximos Passos
+- Validar contratos com backend (endpoints e payloads)
+- Detalhar wireframes (dashboard, validade, movimentações)
+- Definir convenções de tabelas (colunas padrão, filtros e exportação)
+- Definir política de caching/tagging por recurso (revalidate, tags)

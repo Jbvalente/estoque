@@ -1,0 +1,134 @@
+Plano e Estrutura de Pastas – Projeto de Controle de Estoque (Supermercado)
+
+Objetivo
+- Organizar o repositório para facilitar manutenção, escalabilidade, CI/CD e colaboração.
+- Adotar padrões reconhecidos: Go (cmd/internal/pkg, Clean/Hexagonal), Next.js App Router, migrações, documentação e scripts.
+
+Visão Geral do Monorepo
+/
+- backend/                  # Go (API, domínio, infra)
+- frontend/                 # Next.js 14+ (App Router)
+- contexto/                 # Documentação de negócio e planejamento
+- deployments/              # Manifests de deploy (Docker/K8s), compose e envs
+- scripts/                  # Scripts utilitários (migrações, seed, tooling)
+- docs/                     # Documentos técnicos gerados (OpenAPI, ERD)
+- .github/                  # Workflows de CI/CD
+- .editorconfig
+- .gitignore
+- README.md
+
+Backend (Go)
+backend/
+- cmd/
+  - api/
+    - main.go               # entrypoint da API
+- internal/
+  - domain/                 # entidades, agregados, VO, erros de domínio
+  - usecase/                # casos de uso (aplicação)
+  - adapter/
+    - http/                 # handlers, DTOs, middlewares
+    - repo/                 # implementações de repositório (Postgres)
+    - cache/                # Redis adapters
+  - infra/
+    - db/                   # conexão, migrations runner
+    - config/               # carregamento de env, configs
+    - logger/               # zap/logrus
+    - auth/                 # JWT, hash
+    - jobs/                 # schedulers (cron: validade ≤30 dias)
+- api/
+  - openapi.yaml            # especificação dos endpoints
+- migrations/
+  - 0001_init.sql
+  - 0002_add_indexes.sql
+- test/
+  - integration/
+  - fixtures/
+- go.mod
+- go.sum
+
+Frontend (Next.js)
+frontend/
+- app/
+  - layout.tsx              # layout protegido (Client)
+  - page.tsx                # dashboard
+  - (auth)/
+    - login/page.tsx
+  - produtos/
+    - page.tsx
+    - novo/page.tsx
+    - [id]/page.tsx
+  - estoque/
+    - saldos/page.tsx
+    - movimentacoes/page.tsx
+  - validade/
+    - alertas/page.tsx
+  - vendas/
+    - ranking/page.tsx
+    - abc/page.tsx
+    - margens/page.tsx
+  - inventario/
+    - novo/page.tsx
+    - [id]/page.tsx
+  - configuracoes/
+    - usuarios/page.tsx
+    - locais/page.tsx
+- components/
+  - ui/                     # shadcn
+  - layout/Sidebar.tsx, Header.tsx
+  - data-table/, forms/, charts/
+- lib/
+  - api.ts                  # axios/fetch + interceptors JWT
+  - queries/                # TanStack Query hooks
+  - zod-schemas/
+  - utils/
+- store/
+  - auth.ts                 # Zustand
+- public/
+- styles/
+- middleware.ts             # proteção de rotas
+- next.config.ts
+- package.json
+- tsconfig.json
+
+Deployments e Ops
+deployments/
+- docker/
+  - docker-compose.yml
+  - backend.Dockerfile
+  - frontend.Dockerfile
+- k8s/ (opcional futuro)
+  - api-deployment.yaml
+  - api-service.yaml
+  - frontend-deployment.yaml
+  - frontend-service.yaml
+
+Scripts
+scripts/
+- migrate.sh | .ps1         # roda migrações
+- seed.sh | .ps1            # carga inicial
+- gen-openapi.sh            # gera SDK/clients
+- ci-format-test.sh         # lint, testes e build
+
+Docs
+docs/
+- ERD.png                   # diagrama entidade-relacionamento
+- API.md                    # visão dos endpoints
+- FRONTEND.md               # convenções de UI/UX
+
+Boas Práticas Adotadas (resumo)
+- Go: cmd/internal/pkg + Clean/Hexagonal; testes com testify/gomock; configs 12-factor.
+- DB: migrations versionadas; índices e partições por data/loja onde aplicável.
+- Frontend: Next.js App Router; Server/Client Components; SSR/ISR quando vantajoso; TanStack Query; shadcn.
+- Segurança: JWT (access/refresh), RBAC; secrets via env; headers seguros.
+- Observabilidade: logs estruturados; métricas e tracing (OpenTelemetry) no backend.
+- CI/CD: workflows de lint/test/build; imagens Docker; deploy automatizado.
+
+Guidelines de Nomenclatura
+- Pastas e arquivos: kebab-case no frontend; snake_case para SQL; Go segue convenções idiomáticas.
+- Commits: Conventional Commits (feat, fix, chore, docs, refactor, test, build, ci).
+
+Roadmap de Pasta/Infra (curto prazo)
+- Criar skeleton de pastas backend/frontend conforme acima.
+- Adicionar docker-compose com Postgres e Redis.
+- Configurar CI básico (lint/test/build) em .github/workflows.
+- Adicionar templates de PR/issue em .github/.
