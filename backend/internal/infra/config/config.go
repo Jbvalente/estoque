@@ -25,4 +25,16 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigName("app") // you can create an app.env file
 	viper.SetConfigType("env")
 
-	vip ... (399 more characters)
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		// If config file is not found, that's okay, we'll use env vars
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return
+		}
+	}
+
+	err = viper.Unmarshal(&config)
+	return
+}

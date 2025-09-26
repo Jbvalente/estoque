@@ -1,74 +1,108 @@
 # Sistema de Controle de Estoque para Supermercado
 
-Este é o projeto do sistema de controle de estoque, desenvolvido com Go no backend e Next.js no frontend.
+Sistema completo de controle de estoque com FEFO, alertas de validade, margens de lucro, inventário e KPIs, desenvolvido com **Go** (backend) e **Next.js** (frontend).
 
-## Visão Geral
-
-A aplicação é dividida em duas partes principais:
-- `backend/`: Uma API em Go que gerencia toda a lógica de negócio e interação com o banco de dados.
-- `frontend/`: Uma aplicação em Next.js que consome a API e fornece a interface para o usuário.
-
-O ambiente de desenvolvimento é orquestrado com Docker Compose, que gerencia os contêineres para o backend, frontend, banco de dados (PostgreSQL) and cache (Redis).
-
-## Como Executar a Aplicação
+## 🚀 Início Rápido
 
 ### Pré-requisitos
+- **Docker Desktop** instalado e em execução
+- **Git** (para clonar o repositório)
 
-- Docker e Docker Compose instalados.
-- Node.js e pnpm (para o frontend, se for rodar localmente fora do Docker).
+### Método 1: Scripts Automatizados (Recomendado)
 
-### 1. Iniciar os Serviços do Backend
-
-Navegue até a pasta `deployments` e inicie os contêineres do backend, banco de dados e Redis:
-
+**Windows:**
 ```bash
-cd deployments
-docker-compose up -d --build backend
+scripts\start-app.bat
 ```
 
-Este comando irá:
-- Construir a imagem Docker para o serviço de backend.
-- Iniciar os contêineres para `postgres`, `redis`, e `backend` em modo detached (`-d`).
-- O banco de dados será inicializado e as migrações serão aplicadas automaticamente na primeira vez que o backend iniciar.
-
-A API do backend estará disponível em `http://localhost:8080`.
-
-### 2. Iniciar o Frontend
-
-Você pode iniciar o frontend de duas maneiras:
-
-#### a) Usando Docker (Recomendado)
-
-No mesmo diretório `deployments`, execute:
-
+**Linux/macOS:**
 ```bash
-docker-compose up -d --build frontend
+chmod +x scripts/start-app.sh
+scripts/start-app.sh
 ```
 
-#### b) Localmente com pnpm
+Os scripts fazem tudo automaticamente:
+- ✅ Verificam pré-requisitos
+- ✅ Param/limpam serviços existentes  
+- ✅ Constroem e sobem todos os containers
+- ✅ Mostram status e abrem o navegador
 
-Se preferir rodar o frontend diretamente na sua máquina:
+### Método 2: Comandos Manuais
 
 ```bash
-cd ../frontend
-pnpm install
-pnpm dev
+# Construir e subir todos os serviços
+docker compose -f deployments/docker-compose.yml up --build -d
+
+# Ver status dos serviços
+docker compose -f deployments/docker-compose.yml ps
+
+# Ver logs (se necessário)
+docker compose -f deployments/docker-compose.yml logs -f
 ```
 
-A aplicação frontend estará disponível em `http://localhost:3000`.
+### 🌐 Acessos
 
-### Acessando a Aplicação
+Após a inicialização:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
+- **Banco PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
 
-Abra seu navegador e acesse `http://localhost:3000`.
+### 🔐 Login Padrão
 
-As credenciais de login padrão são:
 - **Email**: `admin@supermercado.com`
 - **Senha**: `password`
 
-### Parando a Aplicação
+## 🛑 Como Parar
 
-Para parar todos os serviços, execute o seguinte comando na pasta `deployments`:
+**Windows:**
+```bash
+scripts\stop-app.bat
+```
+
+**Linux/macOS:**
+```bash
+scripts/stop-app.sh
+```
+
+**Manual:**
+```bash
+docker compose -f deployments/docker-compose.yml down
+```
+
+## 📁 Estrutura do Projeto
+
+```
+├── backend/           # API Go (Clean Architecture)
+├── frontend/          # Next.js 14+ (App Router)
+├── deployments/       # Docker Compose
+├── scripts/           # Scripts de automação
+├── contexto/          # Documentação de negócio
+└── docs/              # Documentação técnica
+```
+
+## 🎯 Funcionalidades Implementadas
+
+- ✅ **Autenticação**: Login com JWT
+- ✅ **Produtos**: CRUD completo com categorias
+- ✅ **Estoque**: Saldos por lote/local, FEFO
+- ✅ **Validade**: Alertas ≤30 dias
+- ✅ **Vendas**: Ranking e margens
+- ✅ **Inventário**: Coleta e conciliação
+- ✅ **Dashboard**: KPIs e alertas
+
+## 🔧 Desenvolvimento
+
+Para desenvolvimento local:
 
 ```bash
-docker-compose down
+# Backend
+cd backend
+go mod tidy
+go run cmd/api/main.go
+
+# Frontend  
+cd frontend
+pnpm install
+pnpm dev
 ```
