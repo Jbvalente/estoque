@@ -25,8 +25,8 @@ fi
 
 echo "[INFO] Docker encontrado. Verificando serviços..."
 
-# Navegar para o diretório do projeto
-cd "$(dirname "$0")/.."
+# Já estamos na raiz do projeto
+cd "$(dirname "$0")"
 
 # Verificar se o arquivo docker-compose.yml existe
 if [[ ! -f "deployments/docker-compose.yml" ]]; then
@@ -59,7 +59,7 @@ echo "  Email: admin@supermercado.com"
 echo "  Senha: password"
 echo
 echo "Para parar a aplicação, execute:"
-echo "  scripts/stop-app.sh"
+echo "  ./stop.sh"
 echo
 echo "Para ver logs:"
 echo "  docker compose -f deployments/docker-compose.yml logs -f"
@@ -86,3 +86,5 @@ fi
 
 echo
 echo "Aplicação em execução. Pressione Ctrl+C para sair."
+
+

@@ -10,8 +10,8 @@ echo " Parando Sistema de Controle de Estoque"
 echo "==============================================="
 echo
 
-# Navegar para o diretório do projeto
-cd "$(dirname "$0")/.."
+# Já estamos na raiz do projeto
+cd "$(dirname "$0")"
 
 echo "[INFO] Parando todos os serviços..."
 docker compose -f deployments/docker-compose.yml down
@@ -28,5 +28,7 @@ echo "Para remover volumes e dados (CUIDADO - apaga dados do banco):"
 echo "  docker compose -f deployments/docker-compose.yml down -v"
 echo
 echo "Para iniciar novamente:"
-echo "  scripts/start-app.sh"
+echo "  ./start.sh"
 echo
+
+

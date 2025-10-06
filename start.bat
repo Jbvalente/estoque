@@ -27,8 +27,8 @@ if %errorlevel% neq 0 (
 
 echo [INFO] Docker encontrado. Verificando serviços...
 
-REM Navegar para o diretório do projeto
-cd /d "%~dp0.."
+REM Já estamos na raiz do projeto
+cd /d "%~dp0"
 
 REM Verificar se o arquivo docker-compose.yml existe
 if not exist "deployments\docker-compose.yml" (
@@ -63,7 +63,7 @@ echo   Email: admin@supermercado.com
 echo   Senha: password
 echo.
 echo Para parar a aplicação, execute:
-echo   scripts\stop-app.bat
+echo   stop.bat
 echo.
 echo Para ver logs:
 echo   docker compose -f deployments/docker-compose.yml logs -f

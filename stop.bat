@@ -8,8 +8,8 @@ echo  Parando Sistema de Controle de Estoque
 echo ===============================================
 echo.
 
-REM Navegar para o diretório do projeto
-cd /d "%~dp0.."
+REM Já estamos na raiz do projeto
+cd /d "%~dp0"
 
 echo [INFO] Parando todos os serviços...
 docker compose -f deployments/docker-compose.yml down
@@ -27,7 +27,7 @@ echo Para remover volumes e dados (CUIDADO - apaga dados do banco):
 echo   docker compose -f deployments/docker-compose.yml down -v
 echo.
 echo Para iniciar novamente:
-echo   scripts\start-app.bat
+echo   start.bat
 echo.
 
 pause

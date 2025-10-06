@@ -12,13 +12,13 @@ Sistema completo de controle de estoque com FEFO, alertas de validade, margens d
 
 **Windows:**
 ```bash
-scripts\start-app.bat
+start.bat
 ```
 
 **Linux/macOS:**
 ```bash
-chmod +x scripts/start-app.sh
-scripts/start-app.sh
+chmod +x start.sh
+./start.sh
 ```
 
 Os scripts fazem tudo automaticamente:
@@ -57,12 +57,12 @@ Após a inicialização:
 
 **Windows:**
 ```bash
-scripts\stop-app.bat
+stop.bat
 ```
 
 **Linux/macOS:**
 ```bash
-scripts/stop-app.sh
+./stop.sh
 ```
 
 **Manual:**
