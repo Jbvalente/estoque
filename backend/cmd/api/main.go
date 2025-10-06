@@ -21,6 +21,14 @@ func main() {
 		log.Fatalf("could not load config: %v", err)
 	}
 
+	// Set defaults if not provided
+	if cfg.ServerPort == "" {
+		cfg.ServerPort = "8080"
+	}
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
+	}
+
 	// Initialize logger (to be implemented)
 	// logger := logger.New(cfg.LogLevel)
 
