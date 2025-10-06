@@ -27,7 +27,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Copy the built binary from the builder stage
-COPY --from=builder /app/main .
+COPY --from=builder /app/main ./main
 
 # Copy the migration files
 COPY --from=builder /go/bin/migrate /usr/local/bin/
