@@ -1,9 +1,10 @@
 package config
 
 import (
-	"time"
+    "strings"
+    "time"
 
-	"github.com/spf13/viper"
+    "github.com/spf13/viper"
 )
 
 // Config stores all configuration of the application.
@@ -25,7 +26,20 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigName("app") // you can create an app.env file
 	viper.SetConfigType("env")
 
-	viper.AutomaticEnv()
+    // Support environment variables like DB_SOURCE, JWT_SECRET, etc.
+    viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+    viper.AllowEmptyEnv(true)
+    viper.AutomaticEnv()
+
+    // Explicitly bind expected env keys (defensive)
+    _ = viper.BindEnv("DB_SOURCE")
+    _ = viper.BindEnv("REDIS_URL")
+    _ = viper.BindEnv("SERVER_PORT")
+    _ = viper.BindEnv("JWT_SECRET")
+    _ = viper.BindEnv("JWT_ACCESS_TTL")
+    _ = viper.BindEnv("JWT_REFRESH_TTL")
+    _ = viper.BindEnv("LOG_LEVEL")
+    _ = viper.BindEnv("CORS_ORIGINS")
 
 	err = viper.ReadInConfig()
 	if err != nil {
