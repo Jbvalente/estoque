@@ -45,6 +45,7 @@ services:
     environment:
       - DB_SOURCE=postgresql://admin:password@postgres:5432/estoque_db?sslmode=disable
       - REDIS_URL=redis:6379
+      - SERVER_PORT=8080
       - JWT_SECRET=my-super-secret-key-that-is-long-enough
       - JWT_ACCESS_TTL=15m
       - JWT_REFRESH_TTL=168h

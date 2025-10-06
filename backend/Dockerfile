@@ -39,4 +39,4 @@ EXPOSE 8080
 # This is the command that will be run when the container starts
 # It will first run the migrations and then start the application
 # Note: A proper solution would use a separate script or init container for migrations in production
-CMD ["sh", "-c", "migrate -path /app/migrations -database \"$DB_SOURCE\" up && /app/main"]
+CMD ["sh", "-c", "migrate -path /app/migrations -database \"$DB_SOURCE\" up || true; ./main"]
