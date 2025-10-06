@@ -28,6 +28,11 @@ func main() {
 	if cfg.LogLevel == "" {
 		cfg.LogLevel = "info"
 	}
+	if cfg.DBSource == "" {
+		log.Fatalf("DB_SOURCE environment variable not set")
+	}
+
+	log.Printf("Loaded config: DBSource=%s, ServerPort=%s", cfg.DBSource, cfg.ServerPort)
 
 	// Initialize logger (to be implemented)
 	// logger := logger.New(cfg.LogLevel)
