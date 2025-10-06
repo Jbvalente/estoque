@@ -1,6 +1,7 @@
 -- Extensões
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "btree_gin";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Tabelas de Configuração e Domínio
 
@@ -357,6 +358,17 @@ INSERT INTO locais (loja_id, nome, tipo) VALUES
 ('550e8400-e29b-41d4-a716-446655440000', 'Gôndola A', 'gondola'),
 ('550e8400-e29b-41d4-a716-446655440000', 'Câmara Fria', 'camara');
 
--- Usuário administrador padrão
-INSERT INTO usuarios (nome, email, senha_hash, perfil, loja_id) VALUES 
-('Administrador', 'admin@supermercado.com', '$2a$10$g.w.j.p.E.s.C.o.m.p.l.e.t.e.l.y.S.e.c.u.r.e', 'admin', '550e8400-e29b-41d4-a716-446655440000');
+-- Usuário administrador padrão (idempotente)
+INSERT INTO usuarios (nome, email, senha_hash, perfil, loja_id)
+VALUES (
+    'Administrador',
+    'admin@supermercado.com',
+    crypt('password', gen_salt('bf')),
+    'admin',
+    '550e8400-e29b-41d4-a716-446655440000'
+)
+ON CONFLICT (email) DO UPDATE SET
+    senha_hash = EXCLUDED.senha_hash,
+    perfil = EXCLUDED.perfil,
+    loja_id = EXCLUDED.loja_id,
+    updated_at = CURRENT_TIMESTAMP;
