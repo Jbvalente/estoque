@@ -51,8 +51,8 @@ services:
       - JWT_REFRESH_TTL=168h
       - LOG_LEVEL=debug
       - CORS_ORIGINS=*
-    volumes:
-      - ../backend:/app
+    # volumes:
+    #   - ../backend:/app  # Desabilitado: sobrescreve o binário compilado
     # The command will be specified in the Dockerfile's CMD
 
   frontend:
